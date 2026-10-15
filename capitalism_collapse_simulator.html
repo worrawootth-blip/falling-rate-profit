@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Capitalism Collapse Simulator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --red: #d32f2f; --gold: #ffc107; --bg: #121212; --card: #1e1e1e; }
+        body { font-family: 'Tahoma', sans-serif; background: var(--bg); color: #eee; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .card { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid #444; }
+        h1 { color: var(--red); text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background: #252525; }
+        th, td { border: 1px solid #444; padding: 8px; text-align: center; }
+        input { width: 70px; background: #1a1a1a; border: 1px solid #555; color: white; text-align: center; padding: 4px; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { flex: 1; padding: 15px; cursor: pointer; font-weight: bold; border: none; border-radius: 6px; font-size: 16px; }
+        .btn-sample { background: #455a64; color: white; }
+        .btn-calc { background: var(--red); color: white; }
+        .chart-container { background: #fff; padding: 15px; border-radius: 8px; margin-top: 20px; height: 400px; }
+        .analysis { margin-top: 25px; padding: 20px; background: #252525; border-left: 6px solid var(--red); display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>Capitalism Collapse Simulator</h1>
+        <p style="text-align:center;">พิสูจน์ "กฎการลดลงของอัตรากำไร" ของ Karl Marx</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>ระยะ</th>
+                    <th>s (ส่วนเกิน)</th>
+                    <th>c (เครื่องจักร)</th>
+                    <th>v (ค่าจ้าง)</th>
+                    <th>r (กำไร %)</th>
+                </tr>
+            </thead>
+            <tbody id="input-table"></tbody>
+        </table>
+
+        <div class="btn-group">
+            <button class="btn-sample" onclick="loadSampleData()">1. โหลดข้อมูลจำลอง</button>
+            <button class="btn-calc" onclick="updateChart()">2. วิเคราะห์กราฟและจุดล่มสลาย</button>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="profitChart"></canvas>
+        </div>
+
+        <div id="analysis-text" class="analysis">
+            <h3 style="color:var(--gold)">📊 วิเคราะห์จุดล่มสลาย (Marxist Analysis)</h3>
+            <p id="summary"></p>
+            <p><strong>ทำไมถึงล่มสลาย?</strong> เมื่อเส้นกราฟสีแดงตัดลงต่ำกว่า <strong>เส้นประสีเหลือง (10%)</strong> จะเกิดภาวะที่ Marx เรียกว่า "Crisis of Overaccumulation" ทุนที่สะสมมาในรูปเครื่องจักร (c) มีมูลค่าสูงเกินกว่าที่แรงงาน (v) จะสร้างกำไรคืนให้ได้ ระบบจะหยุดชะงักและนำไปสู่การล่มสลายเชิงโครงสร้าง</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. สร้างแถวข้อมูล 10 ระยะ
+    const tbody = document.getElementById('input-table');
+    for (let i = 1; i <= 10; i++) {
+        tbody.innerHTML += `<tr>
+            <td>${i}</td>
+            <td><input type="number" id="s${i}" value="100"></td>
+            <td><input type="number" id="c${i}" value="${100 * i}"></td>
+            <td><input type="number" id="v${i}" value="100"></td>
+            <td id="r${i}" style="color:var(--gold); font-weight:bold;">-</td>
+        </tr>`;
+    }
+
+    let myChart = null;
+
+    // 2. ฟังก์ชันโหลดข้อมูลตัวอย่าง (ยุคที่เครื่องจักรแทนคน)
+    function loadSampleData() {
+        for (let i = 1; i <= 10; i++) {
+            document.getElementById(`s${i}`).value = 100 + (i * 5);
+            document.getElementById(`c${i}`).value = Math.round(100 * Math.pow(1.35, i));
+            document.getElementById(`v${i}`).value = Math.max(10, 100 - (i * 8));
+        }
+        updateChart();
+    }
+
+    // 3. ฟังก์ชันคำนวณและวาดกราฟ
+    function updateChart() {
+        const labels = [];
+        const dataR = [];
+        const crisisLine = [];
+
+        for (let i = 1; i <= 10; i++) {
+            const s = parseFloat(document.getElementById(`s${i}`).value) || 0;
+            const c = parseFloat(document.getElementById(`c${i}`).value) || 0;
+            const v = parseFloat(document.getElementById(`v${i}`).value) || 1;
+            
+            const r = (s / (c + v)) * 100;
+            document.getElementById(`r${i}`).innerText = r.toFixed(2) + "%";
+            
+            labels.push("ระยะที่ " + i);
+            dataR.push(parseFloat(r.toFixed(2)));
+            crisisLine.push(10);
+        }
+
+        if (myChart) { myChart.destroy(); }
+
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'อัตรากำไร (%)',
+                        data: dataR,
+                        borderColor: '#d32f2f',
+                        backgroundColor: 'rgba(211, 47, 47, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'จุดวิกฤตระบบ (10%)',
+                        data: crisisLine,
+                        borderColor: '#ffeb3b',
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'กำไร (%)' } }
+                }
+            }
+        });
+
+        document.getElementById('analysis-text').style.display = 'block';
+        document.getElementById('summary').innerHTML = `อัตรากำไรลดลงจาก <strong>${dataR[0]}%</strong> เหลือเพียง <strong>${dataR[9]}%</strong> ซึ่งสะท้อนกฎแนวโน้มการลดลงของกำไรตามประวัติศาสตร์ทุนนิยม`;
+        document.getElementById('analysis-text').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
